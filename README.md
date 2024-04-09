@@ -1,5 +1,69 @@
 # MNB árfolyam
 
+A Magyar Nemzteti Bank (MNB) által nyújtott webszolgáltatás segítségével tudunk árfolyam adatokat lekérni, aktuálisat és multbélit egyaránt.
+
+## Függőségek és telepítés
+
+A használathoz telepíteni és engedélyezni kell a PHP-ban a SOAP kiterjesztést.
+
+```bash
+sudo apt-get install php-soap
+```
+
+A *php.ini* fájlban el kell távolítani a ; -t a következő sorból:
+```php.ini
+extension=soap
+```
+
+Végül újra kell indítani az Apache szervert (vagy amit használunk)
+
+```bash
+sudo systemctl restart apache2
+```
+
+
+
+## Példa a használatra
+
+A használatához a `MNBExchangeRateService` osztályt kell példányosítani, ami alapértelmezetten az MNB által biztosított webszolgáltatás URL-t használja.
+
+```php
+$mnb = new MNBExchangeRateService();
+```
+
+Lekérhetjük az MNB által biztosított árfolyam szolgáltatás időintervallumát.
+
+```php
+    $dateInterval = $mnb->getDateInterval();
+    echo "Az MNB árfolyam szolgáltatás időintervalluma: {$dateInterval['startdate']} - {$dateInterval['enddate']}\n";
+```
+
+Lekérhetüjük az akutális árfolyamokat.
+
+```php
+    $rates = $mnb->getCurremtExchangerates();
+    echo "Aktuális árfolyamok:\n";
+    foreach ($rates as $rate) {
+        echo chr(9)."{$rate['curr']}: {$rate['rate']}\n";
+    }
+```
+
+vagy csak egy konkrétat is
+
+```php
+try {
+    $rate = $mnb->getCurremtExchangerates('EUR');
+    echo "Aktuális EUR árfolyam: $rate\n";
+} catch (Exception $e) {
+    echo "Hiba: " . $e->getMessage() . "\n";
+}
+```
+
+
+*(Itt tartok eddig)*
+
+
+## Információk az MNB oldaláról
 
 [Aktuális és a régebbi árfolyamok webszolgáltatásának
 dokumentációja](https://www.mnb.hu/letoltes/aktualis-es-a-regebbi-arfolyamok-webszolgaltatasanak-dokumentacioja-1.pdf)
