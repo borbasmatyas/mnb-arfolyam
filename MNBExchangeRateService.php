@@ -20,8 +20,9 @@ class MNBExchangeRateService
 
     /**
      * getCurremtExchangerates
-     * 
-     * 
+     * A legutolsó napi jegyzés árfolyamtáblázatát adja vissza. Az adatok között csak az adott napon jegyzett devizák szerepelnek.
+     * @param string $currencyCode Egy konkrét, vagy az összes deviza (ha nincs megadva)
+     * @return array Az  árfolyamokok tömbje
      */
     public function getCurremtExchangerates($currencyCode = false) {
         
@@ -38,7 +39,7 @@ class MNBExchangeRateService
 
         if ($currencyCode) {
             // Ellenőrizzük a devizakód formátumát
-            //$this->checkCurrencyFormat($currencyCode);
+            $this->checkCurrencyFormat($currencyCode);
 
             foreach ($xml->Day->Rate as $rate) {
                 if ($rate['curr'] == $currencyCode) {
@@ -66,49 +67,11 @@ class MNBExchangeRateService
      * @param string $endDate A lekérdezés záró dátuma
      * @param string $currencyCode A lekérdezett deviza, vagy devizák kódja vesszővel elválasztva
      * 
-     * @return array Az árfolyam táblázat
+     * @return array Az árfolyamok tömbje
      * 
      */
     public function getExchangeRates($startDate, $endDate, $currencyCode) {
-        // Ellenőrizzük a dátum formátumot
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
-            throw new Exception("Érvénytelen dátum formátum. Kérlek, év-hó-nap formátumban add meg a dátumot.");
-        }
-
-        // Ellenőrizzük a devizakód formátumát
-        //$this->checkCurrencyFormat($currencyCode);
-
-        // Megkérdezzük az MNB-től az árfolyamokat
-        try {
-            $response = $this->client->GetExchangeRates([
-                'startDate' => $startDate,
-                'endDate' => $endDate,
-                'currencyCode' => $currencyCode
-            ]);
-        } catch (SoapFault $e) {
-            throw new Exception("SOAP Hiba: " . $e->getMessage());
-        }
-
-        $xml = simplexml_load_string($response->GetExchangeRatesResult);
-        if (!$xml) {
-            throw new Exception("Nem elérhető az árfolyam információ.");
-        }
-
-        // Készítünk egy tömböt az árfolyamokkal
-        $rates = [];
-        foreach ($xml->Day->Rate as $rate) {
-            $rates[] = [
-                'date' => (string)$xml->Day['date'],
-                'curr' => (string)$rate['curr'],
-                'rate' => (string)$rate
-            ];
-        }
-
-        if (empty($rates)) {
-            throw new Exception("Nem elérhető az árfolyam a megadott időszakban és devizákra.");
-        }
-
-        return $rates;
+  
     }
 
     /**
@@ -138,47 +101,6 @@ class MNBExchangeRateService
         ];
     }
 
-    /**
-     * getCurrencyUnits
-     * Visszaadja a paraméterben megadott deviza(ák) egységét.
-     * 
-     * @param string $currencyCode A devizák neve vesszővel elválasztva
-     * @return array A devizák egysége
-     * 
-     */
-    public function getCurrencyUnits($currencyCode) {
-
-        // Ellenőrizzük a devizakód formátumát
-        ////$this->checkCurrencyFormat($currencyCode);
-
-        // Megkérdezzük az MNB-től az egységeket
-        try {
-            $response = $this->client->GetCurrencyUnits([
-                'currencyCode' => $currencyCode
-            ]);
-        } catch (SoapFault $e) {
-            throw new Exception("SOAP Hiba: " . $e->getMessage());
-        }
-
-        $xml = simplexml_load_string($response->GetCurrencyUnitsResult);
-        if (!$xml) {
-            throw new Exception("Nem elérhető az egység információ.");
-        }
-
-        $units = [];
-        foreach ($xml->Units->Unit as $unit) {
-            $units[] = [
-                'curr' => (string)$unit['curr'],
-                'unit' => (string)$unit
-            ];
-        }
-
-        if (empty($units)) {
-            throw new Exception("Nem elérhető az egység a megadott devizákra.");
-        }
-
-        return $units;
-    }
 
     /**
      * checkCurrencyFormat
@@ -189,7 +111,7 @@ class MNBExchangeRateService
      * 
      */
     private function checkCurrencyFormat($currencyCode = false) {
-        /*
+
         // Bemenet ellenőrzése
         if (!$currencyCode) {
             throw new Exception("Nem adtál meg devizakódot.");
@@ -198,9 +120,9 @@ class MNBExchangeRateService
         if (!preg_match('/^([A-Z]{3}(, ?[A-Z]{3})*)$/', $currencyCode)) {
             throw new Exception("Érvénytelen devizakód: $currencyCode.");
         }
-        */
+
         return true;
-        
+
     }
 
 
@@ -241,24 +163,3 @@ try {
     echo "Hiba: " . $e->getMessage() . "\n";
 }
 
-// teszt: getExchangeRates
-try {
-    $rates = $mnb->getExchangeRates('2021-01-01', '2021-01-10', 'EUR');
-    echo "Árfolyamok:\n";
-    foreach ($rates as $rate) {
-        echo chr(9)."{$rate['date']} {$rate['curr']}: {$rate['rate']}\n";
-    }
-} catch (Exception $e) {
-    echo "Hiba: " . $e->getMessage() . "\n";
-}
-
-// teszt: getCurrencyUnits
-try {
-    $units = $mnb->getCurrencyUnits('EUR,USD');
-    echo "Deviza egységek:\n";
-    foreach ($units as $unit) {
-        echo chr(9)."{$unit['curr']}: {$unit['unit']}\n";
-    }
-} catch (Exception $e) {
-    echo "Hiba: " . $e->getMessage() . "\n";
-}
